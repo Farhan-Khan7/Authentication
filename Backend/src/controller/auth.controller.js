@@ -83,6 +83,7 @@ async function register(req, res) {
     const transpoter = nodemailer.createTransport({
       host: config.MAILTRAP_HOST,
       port: config.MAILTRAP_PORT,
+      secure: false,
       auth: {
         user: config.MAILTRAP_USER,
         pass: config.MAILTRAP_PASS,
