@@ -98,7 +98,13 @@ async function register(req, res) {
         ${config.BASE_URL}/auth/v1/api/verify/${verificationToken}`,
     };
 
-    await transpoter.sendMail(mailOptions);
+    await transpoter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return console.log(error);
+      }
+      console.log("Message sent: %s", info.messageId);
+    });
+    
   } catch (error) {
     return res.status(500).json({
       message: "user not error",
@@ -146,68 +152,68 @@ async function verify(req, res) {
 }
 
 async function login(req, res) {
-
   try {
-    const { email, hashPassword } = req.body
+    const { email, hashPassword } = req.body;
 
     if (!email) {
       return res.status(401).json({
-        message: "Email must be required"
-      })
+        message: "Email must be required",
+      });
     }
 
     if (!hashPassword) {
       return res.status(401).json({
-        message: "Password must be required"
-      })
+        message: "Password must be required",
+      });
     }
 
     const user = await userModel.findOne({ email });
 
     if (!user) {
       return res.status(401).json({
-        message: "email not registered!"
-      })
+        message: "email not registered!",
+      });
     }
 
-    const isValid = await bcrypt.compare(hashPassword, user.hashPassword)
+    const isValid = await bcrypt.compare(hashPassword, user.hashPassword);
 
     if (!isValid) {
       return res.status(401).json({
-        message: "Password does not match!"
-      })
+        message: "Password does not match!",
+      });
     }
 
     const token = JWT.sign(
       {
-        id: user._id
+        id: user._id,
       },
       config.JWT_SECRET,
       {
-        expiresIn: "24h"
-      }
-    )
+        expiresIn: "24h",
+      },
+    );
 
     const cookieOptions = {
-      httpOnly : true
-    }
+      httpOnly: true,
+      secure: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    };
 
-    res.cookie("token", token , cookieOptions)
+    res.cookie("token", token, cookieOptions);
 
     res.status(200).json({
       message: "User Login Successfully!",
       success: true,
       user: {
         name: user.userName,
-        email: user.email
-      }
-    })
-
+        email: user.email,
+      },
+    });
   } catch (error) {
     return res.status(500).json({
       message: "Login failed",
       error: error.message,
-      success: false
+      success: false,
     });
   }
 }
