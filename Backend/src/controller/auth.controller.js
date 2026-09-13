@@ -204,7 +204,8 @@ async function login(req, res) {
 
     const cookieOptions = {
       httpOnly: true,
-      secure: true,
+      secure: false,
+      path : "/",
       maxAge: 24 * 60 * 60 * 1000,
     };
 
@@ -232,9 +233,9 @@ async function login(req, res) {
 
 async function profile(req, res) {
   try {
-    const decode = req.user
+    // const decode = req.user
     // console.log(decode)
-    const user = await userModel.findById(decode.id);
+    const user = await userModel.findById(req.user.id);
 
     // console.log(user)
 
@@ -265,4 +266,26 @@ async function profile(req, res) {
   }
 }
 
-export { register, verify, login, profile };
+async function logout(req , res) {
+
+  try{
+    res.clearCookie("token",{
+    httpOnly: true,
+    secure: false,
+    path : "/"
+   });
+    res.status(200).json({
+      success : true,
+      message : "Logged out successfully!"
+    })
+  } catch (error) {
+    return res.status(500).json({
+      success : false,
+      message : "server Error!"
+    })
+  }
+
+  console.log("Logged out Successfully!")
+
+}
+export { register, verify, login, profile , logout };
