@@ -46,7 +46,7 @@ async function register(req, res) {
       hashPassword: password,
     });
 
-    console.log(user);
+    // console.log(user);
 
     if (!user) {
       res.status(500).json({
@@ -232,19 +232,11 @@ async function login(req, res) {
 
 async function profile(req, res) {
   try {
-    console.log(req.cookies);
-    const token = req.cookies?.token;
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "unauthorized user!",
-      });
-    }
-
-    const decode =  JWT.verify(token, config.JWT_SECRET);
-
+    const decode = req.user
+    // console.log(decode)
     const user = await userModel.findById(decode.id);
+
+    // console.log(user)
 
     if (!user) {
       return res.status(401).json({
@@ -263,7 +255,7 @@ async function profile(req, res) {
       },
     });
 
-    console.log(`${user.userName} own profile!`)
+    console.log(`${user.userName} enter own profile!`)
 
   } catch (error) {
     return res.status(401).json({
