@@ -78,6 +78,8 @@ async function register(req, res) {
       success: true,
     });
 
+    console.log(`Registered by ${user.userName}`)
+
     // Email Verification
 
     const transpoter = nodemailer.createTransport({
@@ -98,13 +100,16 @@ async function register(req, res) {
         ${config.BASE_URL}/auth/v1/api/verify/${verificationToken}`,
     };
 
-    await transpoter.sendMail(mailOptions, (error, info) => {
+    const emailSent = await transpoter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        return console.log(error);
+        return console.log(`Email not send ${user.userName}`);
       }
-      console.log("Message sent: %s", info.messageId);
+      console.log(`Message sent to the ${user.email} : %s`, info.messageId);
     });
+
     
+    
+
   } catch (error) {
     return res.status(500).json({
       message: "user not error",
@@ -142,6 +147,10 @@ async function verify(req, res) {
       message: "User Verification Successfull!",
       success: true,
     });
+
+    console.log(`Verfied by ${user.userName}`)
+
+
   } catch (error) {
     return res.status(500).json({
       message: "Internal server error",
@@ -209,6 +218,9 @@ async function login(req, res) {
         email: user.email,
       },
     });
+
+    console.log(`Logged in by ${user.userName}`)
+
   } catch (error) {
     return res.status(500).json({
       message: "Login failed",
@@ -218,4 +230,47 @@ async function login(req, res) {
   }
 }
 
-export { register, verify, login };
+async function profile(req, res) {
+  try {
+    console.log(req.cookies);
+    const token = req.cookies?.token;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "unauthorized user!",
+      });
+    }
+
+    const decode =  JWT.verify(token, config.JWT_SECRET);
+
+    const user = await userModel.findById(decode.id);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not Found!",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "user enter in profile!",
+      user: {
+        id: user._id,
+        userName: user.userName,
+        email: user.email,
+      },
+    });
+
+    console.log(`${user.userName} own profile!`)
+
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "User is unauthorized!",
+    });
+  }
+}
+
+export { register, verify, login, profile };
