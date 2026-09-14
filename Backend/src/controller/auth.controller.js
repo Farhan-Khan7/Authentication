@@ -92,7 +92,9 @@ async function register(req, res) {
       },
     });
 
+    console.log("After Transporter !")
 
+    console.log("Before mailOptions !")
 
     const mailOptions = {
       from: config.MAILTRAP_SENDEREMAIL,
@@ -321,6 +323,8 @@ async function register(req, res) {
     `
     };
 
+    console.log("After mailOptions !")
+    
     const emailSent = await transpoter.sendMail(mailOptions, (error, info) => {
       if (error) {
         return console.log(`Email not send ${user.userName}`);
@@ -413,6 +417,7 @@ async function login(req, res) {
         });
       }
 
+      user.isLoggedIn = true
       const isValid = await bcrypt.compare(hashPassword, user.hashPassword);
 
       if (!isValid) {
@@ -449,6 +454,7 @@ async function login(req, res) {
         },
       });
 
+      await user.save()
       console.log(`Logged in by ${user.userName}`)
     }
   } catch (error) {
@@ -467,26 +473,33 @@ async function profile(req, res) {
     // console.log(decode)
     const user = await userModel.findById(req.user.id);
 
-    // console.log(user)
+    console.log("in profile part : ", user.isLoggedIn)
 
-    if (!user) {
+    if (!user.isLoggedIn) {
       return res.status(401).json({
         success: false,
-        message: "User not Found!",
+        message: "user not login!"
+      })
+    } else {
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "User not Found!",
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "user enter in profile!",
+        user: {
+          id: user._id,
+          userName: user.userName,
+          email: user.email,
+        },
       });
+
+      console.log(`${user.userName} enter own profile!`)
     }
-
-    res.status(200).json({
-      success: true,
-      message: "user enter in profile!",
-      user: {
-        id: user._id,
-        userName: user.userName,
-        email: user.email,
-      },
-    });
-
-    console.log(`${user.userName} enter own profile!`)
 
   } catch (error) {
     return res.status(401).json({
@@ -499,6 +512,13 @@ async function profile(req, res) {
 async function logout(req, res) {
 
   try {
+    const { isLoggedIn } = req.body
+    const user = await userModel.findOne({ isLoggedIn })
+
+    console.log("in logout part ", user.isLoggedIn)
+
+    user.isLoggedIn = false
+
     res.clearCookie("token", {
       httpOnly: true,
       secure: false,
@@ -508,6 +528,9 @@ async function logout(req, res) {
       success: true,
       message: "Logged out successfully!"
     })
+
+    await user.save()
+
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -533,49 +556,52 @@ async function forgotPassword(req, res) {
 
     const user = await userModel.findOne({ email })
 
-    if (!user) {
+    console.log("in forgotpassword : ", user.isLoggedIn)
+
+    if (!user.isLoggedIn) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email!"
+        message: "User not Logged In!"
       })
-    }
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const resetTokenTime = new Date(Date.now() + 10 * 60 * 1000);
-
-
-    user.resetPasswordToken = resetToken
-    user.resetPasswordExpires = resetTokenTime
-
-    await user.save()
-
-    if (!user) {
-      return res.status(500).json({
-        success: false,
-        message: "Internal Server Error!"
-      })
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: config.MAILTRAP_HOST,
-      port: config.MAILTRAP_PORT,
-      secure: false, // 465 => true, 587 => false
-
-      auth: {
-        user: config.MAILTRAP_USER,
-        pass: config.MAILTRAP_PASS
+    } else {
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid email!"
+        })
       }
-    });
+
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetTokenTime = new Date(Date.now() + 10 * 60 * 1000);
+
+
+      user.resetPasswordToken = resetToken
+      user.resetPasswordExpires = resetTokenTime
+
+      await user.save()
+
+
+      const transporter = nodemailer.createTransport({
+        host: config.MAILTRAP_HOST,
+        port: config.MAILTRAP_PORT,
+        secure: false, // 465 => true, 587 => false
+
+        auth: {
+          user: config.MAILTRAP_USER,
+          pass: config.MAILTRAP_PASS
+        }
+      });
 
 
 
-    const mailOptions = {
-      from: config.MAILTRAP_SENDEREMAIL,
-      to: user.email,
-      subject: "Reset your Password!",
+      const mailOptions = {
+        from: config.MAILTRAP_SENDEREMAIL,
+        to: user.email,
+        subject: "Reset your Password!",
 
-      // Plain text fallback
-      text: `
+        // Plain text fallback
+        text: `
         Hello ${user.userName},
 
         We received a request to reset your password.
@@ -591,8 +617,8 @@ async function forgotPassword(req, res) {
         MyApp Team
     `,
 
-      // HTML Email
-      html: `
+        // HTML Email
+        html: `
         <!DOCTYPE html>
         <html lang="en">
 
@@ -784,28 +810,27 @@ async function forgotPassword(req, res) {
         </body>
         </html>
     `
-    };
+      };
 
 
 
-    transporter.sendMail(mailOptions, (error, info) => {
+      transporter.sendMail(mailOptions, (error, info) => {
 
-      if (error) {
-        return console.log(
-          `Email Not Sent to ${user.userName} \n${error.message}`
-        );
-      } else {
-        console.log(
-          `Message Sent to ${user.userName} \n${info.messageId}`
-        );
-      }
+        if (error) {
+          return console.log(
+            `Email Not Sent to ${user.userName} \n${error.message}`
+          );
+        } else {
+          console.log(
+            `Message Sent to ${user.userName} \n${info.messageId}`
+          );
+        }
 
-    });
-
-
+      })
 
 
-    console.log(`Password Forgot by ${user.userName}`);
+      console.log(`Password Forgot by ${user.userName}`);
+    }
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -813,11 +838,53 @@ async function forgotPassword(req, res) {
     })
   }
 
+  res.status(200).json({
+    success: true,
+    message: "Forget Password link Sent Successfully ! "
+  })
+
 
 }
 
-
 async function resetPassword(req, res) {
+  const { resetPasswordToken } = req.params
+  const { hashPassword } = req.body
+
+  console.log(resetPasswordToken, hashPassword)
+
+  try {
+    const user = await userModel.findOne({
+      resetPasswordToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    })
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "user not found!"
+      })
+    }
+    const password = await bcrypt.hash(hashPassword, 10)
+
+    user.hashPassword = password;
+    user.resetPasswordToken = undefined
+    user.resetPasswordExpires = undefined
+
+    await user.save()
+
+    res.status(200).json({
+      success: true,
+      message: "Password Changed Successfully!"
+    })
+
+    console.log(`Password changed by ${user.userName}`)
+
+  } catch (error) {
+    res.stutus(401).json({
+      success: false,
+      message: "reset password failed! "
+    })
+  }
 
 }
 export { register, verify, login, profile, logout, forgotPassword, resetPassword };

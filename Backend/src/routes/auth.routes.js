@@ -10,7 +10,7 @@ router.post('/login' , login)
 router.get('/profile' , isLoggedIn , profile)
 router.post('/logout', isLoggedIn , logout)
 router.post('/forgetpassword' , forgotPassword)
-router.post('/reset/:resetPasswordToken' , resetPassword)
+router.post('/resetpassword/:resetPasswordToken' , resetPassword)
 
 
 
