@@ -850,7 +850,6 @@ async function resetPassword(req, res) {
   const { resetPasswordToken } = req.params
   const { hashPassword } = req.body
 
-  console.log(resetPasswordToken, hashPassword)
 
   try {
     const user = await userModel.findOne({
