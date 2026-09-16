@@ -9,21 +9,18 @@ async function register(req, res) {
   try {
     const { userName, email, hashPassword } = req.body;
 
-    // const usernameRegex = /^[a-zA-Z]+$/;
     if (!userName) {
       return res.status(400).json({
         message: "UserName must be required!",
       });
     }
 
-    // const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email) {
       return res.status(400).json({
         message: "email must be required!",
       });
     }
 
-    // const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@#$%^&*!]).{8,}$/;
     if (!hashPassword) {
       return res.status(400).json({
         message: "Password must be required!",
